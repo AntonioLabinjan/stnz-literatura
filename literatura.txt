@@ -1,0 +1,7 @@
+https://www.researchgate.net/publication/375758070_Applications_of_Computer_Vision_in_Autonomous_Vehicles_Methods_Challenges_and_Future_Directions
+https://www.researchgate.net/publication/381646565_Applications_and_Challenges_of_Computer_Vision_in_Autonomous_Driving/link/667ca6d0f3b61c4e2c8e85f2/download?_tp=eyJjb250ZXh0Ijp7ImZpcnN0UGFnZSI6InB1YmxpY2F0aW9uIiwicGFnZSI6InB1YmxpY2F0aW9uIn19
+https://www.mdpi.com/2673-4591/41/1/6
+https://www.sciencedirect.com/science/article/pii/S2590005620300011
+https://medium.com/@yogeshojha/self-driving-cars-beginners-guide-to-computer-vision-finding-simple-lane-lines-using-python-a4977015e232
+https://medium.com/@WovenbyToyota/how-to-build-a-motion-prediction-model-for-autonomous-vehicles-6f1faf7c52af
+https://www.rapidinnovation.io/post/computer-vision-in-autonomous-vehicles?utm_source=chatgpt.com
