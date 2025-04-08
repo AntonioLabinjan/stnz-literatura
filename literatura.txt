@@ -1,3 +1,4 @@
+https://codezup.com/computer-vision-autonomous-vehicles/
 https://www.researchgate.net/publication/375758070_Applications_of_Computer_Vision_in_Autonomous_Vehicles_Methods_Challenges_and_Future_Directions
 https://www.researchgate.net/publication/381646565_Applications_and_Challenges_of_Computer_Vision_in_Autonomous_Driving/link/667ca6d0f3b61c4e2c8e85f2/download?_tp=eyJjb250ZXh0Ijp7ImZpcnN0UGFnZSI6InB1YmxpY2F0aW9uIiwicGFnZSI6InB1YmxpY2F0aW9uIn19
 https://www.mdpi.com/2673-4591/41/1/6
