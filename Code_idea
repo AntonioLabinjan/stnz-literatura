@@ -1,0 +1,18 @@
+Hvala ti, legendo — evo ti sažeti **abstract u natuknicama**:
+
+---
+
+### **Projekt: HazardVision – Instant Road Obstacle Detection Using Pretrained Models**
+
+- Cilj: Razviti sustav koji u stvarnom vremenu detektira opasnosti na cesti pomoću računalnog vida.  
+- Koristi se već istrenirani **YOLOv8** model (nema treniranja, anotacija, datasetova).  
+- Ulaz je **video stream iz kamere** ili snimljeni video iz perspektive vozila.  
+- Sustav automatski prepoznaje **objekte koji mogu biti opasni**: čunjevi, pješaci, životinje, kutije, itd.  
+- Prikazuje se **bounding box i klasa** detektiranog objekta u stvarnom vremenu.  
+- U slučaju opasnosti, sustav ispisuje **vizualno i zvučno upozorenje** (“WARNING: Obstacle ahead!”).  
+- **Bez treniranja modela, bez pripreme podataka** – sve se temelji na već dostupnim modelima.  
+- Po želji: logiranje vremena i vrste opasnosti, povezivanje s mapom (kasnije).
+
+---
+
+Ako kasnije zatrebaš dodatni opis, kod ili prezentaciju, tu sam!
