@@ -7,3 +7,4 @@ https://medium.com/@yogeshojha/self-driving-cars-beginners-guide-to-computer-vis
 https://medium.com/@WovenbyToyota/how-to-build-a-motion-prediction-model-for-autonomous-vehicles-6f1faf7c52af
 https://www.rapidinnovation.io/post/computer-vision-in-autonomous-vehicles?utm_source=chatgpt.com
 https://lumenalta.com/insights/9-applications-of-computer-vision-in-autonomous-vehicles
+https://www.google.com/amp/s/www.labellerr.com/blog/how-self-driving-cars-see-the-world/amp/
