@@ -4,6 +4,13 @@ import cv2
 from ultralytics import YOLO
 import time
 import numpy as np
+from datetime import datetime
+import pyttsx3
+import threading
+import asyncio
+import queue
+
+engine = pyttsx3.init()
 
 model = YOLO("yolov8n.pt")
 cap = cv2.VideoCapture(0)
@@ -26,71 +33,120 @@ class App:
         self.fps_label = tk.Label(root, text="FPS: 0", font=("Helvetica", 16), fg="white", bg="#222")
         self.fps_label.pack()
 
+        self.visibility_label = tk.Label(root, text="", font=("Helvetica", 14), fg="orange", bg="#222")
+        self.visibility_label.pack()
+
+        self.log_label = tk.Label(root, text="Detections log:", font=("Helvetica", 12), fg="white", bg="#222", justify="left")
+        self.log_label.pack(pady=10)
+
+        self.detection_log = []
+        self.last_alert_time = time.time()
+
         self.prev_time = time.time()
+
+        self.queue = queue.Queue()
+
+        self.processing_thread = threading.Thread(target=self.process_video_feed)
+        self.processing_thread.daemon = True
+        self.processing_thread.start()
+
         self.update()
 
-    def detect_lanes(self, frame):
-        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray, (5, 5), 0)
-        edges = cv2.Canny(blur, 50, 150)
-        height, width = frame.shape[:2]
-        mask = np.zeros_like(edges)
-        roi = np.array([[(0, height), (width, height), (width, height//2), (0, height//2)]])
-        cv2.fillPoly(mask, roi, 255)
-        masked_edges = cv2.bitwise_and(edges, mask)
-        lines = cv2.HoughLinesP(masked_edges, 1, np.pi/180, 50, maxLineGap=50)
-        if lines is not None:
-            for line in lines:
-                x1, y1, x2, y2 = line[0]
-                cv2.line(frame, (x1, y1), (x2, y2), (255, 255, 255), 2)
+    def log_detection(self, class_name, confidence):
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        entry = f"{timestamp} - {class_name} ({confidence:.2f})"
+        self.detection_log.append(entry)
+
+        if len(self.detection_log) > 10:
+            self.detection_log.pop(0)
+
+        self.log_label.config(text="Detections log:\n" + "\n".join(self.detection_log))
+
+    def estimate_distance(self, height):
+        return round(10000 / (height + 1), 2)
+
+
+    def play_alert(self, message):
+        def speak():
+            engine = pyttsx3.init()
+            engine.say(message)
+            engine.runAndWait()
+
+        if time.time() - self.last_alert_time > 1:
+            self.last_alert_time = time.time()
+            threading.Thread(target=speak, daemon=True).start()
+
+
+    def process_video_feed(self):
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                continue
+
+            results = list(model.predict(source=frame, stream=True))[0]
+
+
+            decision = "GO"
+            for box in results.boxes:
+                x1, y1, x2, y2 = map(int, box.xyxy[0])
+                conf = float(box.conf[0])
+                cls = int(box.cls[0])
+                class_name = model.names[cls]
+
+                if class_name in important_classes:
+                    color = (0, 255, 255) if class_name == "person" else (0, 255, 0)
+                    cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+
+                    height = y2 - y1
+                    distance = self.estimate_distance(height)
+                    cv2.putText(frame, f"{class_name}: {conf:.2f} | {distance}cm", (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), 2)
+
+                    self.log_detection(class_name, conf)
+
+                    if class_name == "person" and (y2 - y1) > 200:
+                        decision = "STOP - PEDESTRIAN"
+                        self.play_alert(f"Stop, pedestrian detected at {distance} cm")
+                    elif class_name == "stop sign":
+                        decision = "STOP - SIGN"
+                        self.play_alert(f"Stop sign detected at {distance} cm")
+                    elif class_name == "traffic light":
+                        decision = "TRAFFIC LIGHT AHEAD"
+                        self.play_alert(f"Traffic light detected at {distance} cm")
+                    elif class_name in ['car', 'bus', 'truck', 'motorbike', 'bicycle']:
+                        decision = "OBSTACLE AHEAD"
+                        self.play_alert(f"Obstacle detected at {distance} cm")
+
+            curr_time = time.time()
+            fps = 1 / (curr_time - self.prev_time)
+            self.prev_time = curr_time
+
+            self.queue.put((frame, decision, fps))  
+
+            time.sleep(0.03)  # Pauza da se ne optereti procesor
 
     def update(self):
-        ret, frame = cap.read()
-        if not ret:
-            return
+        if not self.queue.empty():
+            frame, decision, fps = self.queue.get()
 
-        results = model(frame)[0]
-        self.detect_lanes(frame)
+            self.status_label.config(text=f"Alert: {decision}", fg="red" if "STOP" in decision else "lime")
+            self.fps_label.config(text=f"FPS: {int(fps)}")
 
-        decision = "GO"
-        for box in results.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
-            conf = float(box.conf[0])
-            cls = int(box.cls[0])
-            class_name = model.names[cls]
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            brightness = np.mean(gray)
 
-            if class_name in important_classes:
-                color = (0, 255, 255) if class_name == "person" else (0, 255, 0)
-                cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-                cv2.putText(frame, f"{class_name}: {conf:.2f}", (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,0,0), 2)
+            if brightness < 50:
+                self.visibility_label.config(text="Low visibility detected – please turn on headlights!", fg="orange")
+            else:
+                self.visibility_label.config(text="")
 
-                # Decision logic
-                if class_name == "person" and (y2 - y1) > 200:
-                    decision = "STOP - PEDESTRIAN"
-                elif class_name == "stop sign":
-                    decision = "STOP - SIGN"
-                elif class_name == "traffic light":
-                    decision = "TRAFFIC LIGHT AHEAD"
-                elif class_name in ['car', 'bus', 'truck', 'motorbike', 'bicycle']:
-                    decision = "OBSTACLE AHEAD"
+            img = Image.fromarray(frame)
+            imgtk = ImageTk.PhotoImage(image=img)
+            self.canvas.imgtk = imgtk
+            self.canvas.configure(image=imgtk)
 
-        # Update FPS
-        curr_time = time.time()
-        fps = 1 / (curr_time - self.prev_time)
-        self.prev_time = curr_time
-
-        # Update UI
-        self.status_label.config(text=f"Alert: {decision}", fg="red" if "STOP" in decision else "lime")
-        self.fps_label.config(text=f"FPS: {int(fps)}")
-
-        # Convert image and show
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        img = Image.fromarray(frame)
-        imgtk = ImageTk.PhotoImage(image=img)
-        self.canvas.imgtk = imgtk
-        self.canvas.configure(image=imgtk)
-
-        self.root.after(1, self.update)
+        self.root.after(1, self.update)  # Pozovi se ponovo nakon 1ms
 
 root = tk.Tk()
 app = App(root)
