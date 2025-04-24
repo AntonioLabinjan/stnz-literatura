@@ -11,3 +11,4 @@ KAKO IMPLEMENTIRAT U LEGIT STVAR -> JOŠ MALO UŠIBAT TAJ KOD DA BUDE BOLJI....I
 - dashboard UI
 
 - More video/more real time 
+DO ČETVRTKA
