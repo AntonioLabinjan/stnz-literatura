@@ -176,7 +176,7 @@ class App:
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             brightness = np.mean(gray)
             if brightness < 50:
-                self.visibility_label.config(text="⚠️ Low visibility - turn your lights on!", fg="orange")
+                self.visibility_label.config(text=" Low visibility - turn your lights on!", fg="orange")
             else:
                 self.visibility_label.config(text="")
 
