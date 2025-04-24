@@ -1,3 +1,5 @@
+KAKO IMPLEMENTIRAT U LEGIT STVAR -> JOŠ MALO UŠIBAT TAJ KOD DA BUDE BOLJI....INTERFACE itd.
+
 - Lane+obstacle detection 
 - klasifikacija obstaclesa
 - semafori
