@@ -27,15 +27,27 @@ important_classes = [
     'fire hydrant',       # hidrant (može biti prepreka uz cestu)
     'bench',              # klupe (blizu pješačkih zona)
     'stroller',           # dječja kolica
-    'dog',                # psi koji prelaze cestu
-    'cat',                # mačke (posebno u naseljima)
     'wheelchair',         # korisnici invalidskih kolica
     'traffic cone',       # prometni čunjevi (radovi na cesti)
     'backpack',           # ljudi s ruksacima (studenti, turisti, itd.)
     'umbrella',           # pješaci s kišobranima (loša vidljivost)
     'skateboard',         # djeca/mladi u prometu
     'suitcase',           # putnici (npr. u blizini stanica)
+    "bird",
+    "cat",
+    "dog",
+    "horse",
+    "sheep",
+    "cow",
+    "elephant",
+    "bear",
+    "zebra",
+    "giraffe"
 ]
+
+
+
+
 
 
 engine = pyttsx3.init()
@@ -75,6 +87,10 @@ class App:
         # Vidljivost
         self.visibility_label = tk.Label(info_frame, text="", font=("Helvetica", 12), fg="orange", bg="#2c2c2c", wraplength=380)
         self.visibility_label.pack(pady=10)
+                # Visibility Progress Bar
+        self.visibility_bar = ttk.Progressbar(info_frame, orient="horizontal", length=300, mode="determinate")
+        self.visibility_bar.pack(pady=(5, 20))
+
 
         # Logs
         self.log_title = tk.Label(info_frame, text="Detections:", font=("Helvetica", 14, "bold"), fg="#00FFB3", bg="#2c2c2c")
@@ -151,13 +167,23 @@ class App:
                         self.play_alert(f"Stop, pedestrian detected at {distance} cm")
                     elif class_name == "stop sign":
                         decision = "STOP - SIGN"
-                        self.play_alert(f"Stop sign detected at {distance} cm")
+                        self.play_alert(f"Stop, stop sign detected at {distance} cm")
                     elif class_name == "traffic light":
-                        decision = "TRAFFIC LIGHT AHEAD"
-                        self.play_alert(f"Traffic light detected at {distance} cm")
+                        decision = "WATCH OUT - TRAFFIC LIGHT AHEAD"
+                        self.play_alert(f"Watch out, traffic light detected at {distance} cm")
                     elif class_name in ['car', 'bus', 'truck', 'motorbike', 'bicycle']:
-                        decision = "OBSTACLE AHEAD"
-                        self.play_alert(f"Obstacle detected at {distance} cm")
+                        decision = "WATCH OUT - VEHICLE AHEAD"
+                        self.play_alert(f"Watch out, vehicle detected at {distance} cm")
+                    elif class_name in ['parking meter']:
+                        decision = "WATCH OUT - PARKING NEAR"
+                        self.play_alert(f"Parking is near. You can park at {distance} cm")
+                    elif class_name in ['traffic cone', 'helmet']:
+                        decision = "WATCH OUT - ROADWORKS"
+                        self.play_alert(f"Watch out, roadworks ahead at {distance} cm")
+                    elif class_name in ["bird","cat","dog","horse","sheep","cow","elephant","bear","zebra","giraffe"]:
+                        decision = "WATCH OUT - ANIMAL"
+                        self.play_alert(f"Watch out, animal detected at {distance} cm")
+
 
             curr_time = time.time()
             fps = 1 / (curr_time - self.prev_time)
@@ -169,14 +195,17 @@ class App:
     def update_ui(self):
         if not self.queue.empty():
             frame, decision, fps = self.queue.get()
+            color = "red" if "STOP" in decision else "yellow" if "WATCH OUT" in decision else "lime"
+            self.status_label.config(text=f"Status: {decision}", fg=color)
 
-            self.status_label.config(text=f"Status: {decision}", fg="red" if "STOP" in decision else "lime")
             self.fps_label.config(text=f"FPS: {int(fps)}")
 
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             brightness = np.mean(gray)
+            self.visibility_bar["value"] = min(max(int(brightness * 2), 0), 100)
             if brightness < 50:
-                self.visibility_label.config(text=" Low visibility - turn your lights on!", fg="orange")
+                self.visibility_label.config(text="⚠️ Low visibility - turn your lights on!", fg="orange")
+                self.play_alert("Low visibility - turn your lights on!")
             else:
                 self.visibility_label.config(text="")
 
