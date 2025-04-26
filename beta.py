@@ -10,29 +10,30 @@ import pyttsx3
 import threading
 import queue
 
-# Inicijalizacija YOLO modela i kamere
+# Init yolo & camera capture
 model = YOLO("yolov8n.pt")
 cap = cv2.VideoCapture(0)
 
+# sve klase koje bi imale smisla za prepoznat u vožnji
 important_classes = [
-    'person',             # pješaci
-    'car',                # automobili
-    'bus',                # autobusi
-    'truck',              # kamioni
-    'motorbike',          # motori
-    'bicycle',            # bicikli
-    'traffic light',      # semafori
-    'stop sign',          # znak STOP
-    'parking meter',      # parking automat (znak da je zona za parkiranje)
-    'fire hydrant',       # hidrant (može biti prepreka uz cestu)
-    'bench',              # klupe (blizu pješačkih zona)
-    'stroller',           # dječja kolica
-    'wheelchair',         # korisnici invalidskih kolica
-    'traffic cone',       # prometni čunjevi (radovi na cesti)
-    'backpack',           # ljudi s ruksacima (studenti, turisti, itd.)
-    'umbrella',           # pješaci s kišobranima (loša vidljivost)
-    'skateboard',         # djeca/mladi u prometu
-    'suitcase',           # putnici (npr. u blizini stanica)
+    'person',             
+    'car',                
+    'bus',                
+    'truck',              
+    'motorbike',          
+    'bicycle',            
+    'traffic light',      
+    'stop sign',         
+    'parking meter',      
+    'fire hydrant',       
+    'bench',              
+    'stroller',           
+    'wheelchair',         
+    'traffic cone',       
+    'backpack',           
+    'umbrella',           
+    'skateboard',         
+    'suitcase',           
     "bird",
     "cat",
     "dog",
@@ -49,10 +50,11 @@ important_classes = [
 
 
 
-
+# omogućava govor
 engine = pyttsx3.init()
 
 class App:
+    # inicijalizacija objekta app klase (dela se "frontend")
     def __init__(self, root):
         self.root = root
         self.root.title("Autonomous Driving Dashboard")
@@ -87,7 +89,7 @@ class App:
         # Vidljivost
         self.visibility_label = tk.Label(info_frame, text="", font=("Helvetica", 12), fg="orange", bg="#2c2c2c", wraplength=380)
         self.visibility_label.pack(pady=10)
-                # Visibility Progress Bar
+        # Visibility Progress Bar
         self.visibility_bar = ttk.Progressbar(info_frame, orient="horizontal", length=300, mode="determinate")
         self.visibility_bar.pack(pady=(5, 20))
 
@@ -113,9 +115,12 @@ class App:
         self.update_ui()
 
 
+    # provjena udaljenosti za detektirane objekte
     def estimate_distance(self, height):
         return round(10000 / (height + 1), 2)
 
+    # izgovaranje poruka svakih 1.5 sekundu
+    # stavljeno u svoj thread da se glavna aplikacija ne sprži
     def play_alert(self, message):
         def speak():
             engine = pyttsx3.init()
@@ -126,6 +131,7 @@ class App:
             self.last_alert_time = time.time()
             threading.Thread(target=speak, daemon=True).start()
 
+    # logiranje svih detektiranih stvari. UI se dinamički refresha s novim detekcijama (12 linija mu je max veličina)
     def log_detection(self, entry):
         self.log_text.config(state=tk.NORMAL)
         self.log_text.insert(tk.END, f"{entry}\n")
@@ -134,34 +140,46 @@ class App:
         if len(lines) > 12:
             self.log_text.delete("1.0", "2.0")
         self.log_text.config(state=tk.DISABLED)
-
+    
+    # procesiranje videa
     def process_video_feed(self):
+        # sve dok je aplikacija upaljena, lovimo frameove i čitamo ih
         while True:
             ret, frame = cap.read()
             if not ret:
                 continue
-
+            
+            # u results se sprema lista svega ča yolo izdetektira/predvidi...analizira frameove kao kontinuirani stream
             results = list(model.predict(source=frame, stream=True))[0]
+
+            # defaultna odluka je GO (ako ne vidiš niš opasno, samo kreni)
             decision = "GO"
 
+            # za svaki yolo bounding box definiraj koja je predviđena klasa(koji su uočeni bitni featuresi), koji je confidence (koliko % je model siguran) i koji je točan naziv klase
             for box in results.boxes:
                 x1, y1, x2, y2 = map(int, box.xyxy[0])
                 conf = float(box.conf[0])
                 cls = int(box.cls[0])
                 class_name = model.names[cls]
 
+                # ako je predviđena klasa neka od onih klasa koje su definirane kao važne
                 if class_name in important_classes:
+                    # izračunaj visinu i procijeni udaljenost prema formuli gore
                     height = y2 - y1
                     distance = self.estimate_distance(height)
 
-                    color = (0, 255, 255) if class_name == "person" else (0, 255, 0)
+                    color = (0, 255, 255) if class_name == "person" else (0, 255, 0) # žuto ako je osoba, zeleno ako je bilo ča drugo
+                    # nacrtaj bbox i stavi labelu + udaljensst
                     cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
                     cv2.putText(frame, f"{class_name}: {conf:.2f} | {distance}cm", (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 2)
 
+                    # vidi vrijeme detekcije i logiraj ga u formatu time class name
                     timestamp = datetime.now().strftime("%H:%M:%S")
                     self.log_detection(f"[{timestamp}] {class_name} ({conf:.2f})")
-
+                    
+                    # ako je osoba i ako je jako blizu (height > 200)
+                    # za ostale klase ne gleda distance nego samo ako postoje
                     if class_name == "person" and height > 200:
                         decision = "STOP - PEDESTRIAN"
                         self.play_alert(f"Stop, pedestrian detected at {distance} cm")
@@ -184,31 +202,42 @@ class App:
                         decision = "WATCH OUT - ANIMAL"
                         self.play_alert(f"Watch out, animal detected at {distance} cm")
 
-
+            # praćenje trenutnog vremena, izračun fps-a
             curr_time = time.time()
             fps = 1 / (curr_time - self.prev_time)
             self.prev_time = curr_time
 
-            self.queue.put((frame, decision, fps))
+            # cooldown od 0.03 sekundi između donošenja odluka da se moru pročitat (bilo bi epileptično da se ispisuju with each detection)
+            self.queue.put((frame, decision, fps)) # queue za odluke
             time.sleep(0.03)
 
     def update_ui(self):
+        # ako queue ni prazan (ako je donesena neka odluka)
         if not self.queue.empty():
+            # dohvat odluke iz queuea
             frame, decision, fps = self.queue.get()
+            # ako poruka sadrži stop, farbaj crveno, ako sadrži watch out, farbaj žuto, ako ne, farbaj zeleno
             color = "red" if "STOP" in decision else "yellow" if "WATCH OUT" in decision else "lime"
+            # ispis odluke i FPS-a
             self.status_label.config(text=f"Status: {decision}", fg=color)
 
             self.fps_label.config(text=f"FPS: {int(fps)}")
 
+            # pretvaranje obojane slike u grayscale za lakšu obradu
             gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            # računamo prosječnu svjetlost svih frameova
             brightness = np.mean(gray)
             self.visibility_bar["value"] = min(max(int(brightness * 2), 0), 100)
+            # ako je manja od 50, svjetlost je niska -> alert
             if brightness < 50:
                 self.visibility_label.config(text="⚠️ Low visibility - turn your lights on!", fg="orange")
                 self.play_alert("Low visibility - turn your lights on!")
+            # ako je veća, onda je OK, nema alerta
             else:
                 self.visibility_label.config(text="")
 
+            # pretvaranje OpenCV framea u Tkinter sliku i svakih 10 ms osvježava prikaz videa
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             img = Image.fromarray(frame)
             imgtk = ImageTk.PhotoImage(image=img)
