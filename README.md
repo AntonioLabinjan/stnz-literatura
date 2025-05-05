@@ -1,1 +1,2 @@
-BIt će to ok
+Created in collaboration with Ana Rogalo & Anastazija Širol
+
