@@ -14,7 +14,7 @@ import queue
 model = YOLO("yolov8n.pt")
 cap = cv2.VideoCapture(0)
 
-# sve klase koje bi imale smisla za prepoznat u vožnji
+# sve klase koje bi imalo smisla za prepoznat u vožnji
 important_classes = [
     'person',             
     'car',                
@@ -136,7 +136,7 @@ class App:
         self.log_text.config(state=tk.NORMAL)
         self.log_text.insert(tk.END, f"{entry}\n")
         self.log_text.see(tk.END)
-        lines = self.log_text.get("1.0", tk.END).splitlines()
+        lines = self.log_text.get("1.0", tk.END).splitlines() # odvajanje linija; da nemamo samo 1 jako dugu
         if len(lines) > 12:
             self.log_text.delete("1.0", "2.0")
         self.log_text.config(state=tk.DISABLED)
@@ -204,10 +204,10 @@ class App:
 
             # praćenje trenutnog vremena, izračun fps-a
             curr_time = time.time()
-            fps = 1 / (curr_time - self.prev_time)
+            fps = 1 / (curr_time - self.prev_time) # računa koliko frameova se odvrti u sekundi
             self.prev_time = curr_time
 
-            # cooldown od 0.03 sekundi između donošenja odluka da se moru pročitat (bilo bi epileptično da se ispisuju with each detection)
+            # cooldown od 0.03 sekundi između donošenja odluka da se moru pročitat (bilo bi epileptično i nečitko da se ispisuju with each detection)
             self.queue.put((frame, decision, fps)) # queue za odluke
             time.sleep(0.03)
 
